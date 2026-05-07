@@ -25,6 +25,9 @@ jobs:
       CCACHE_DIR: /tmp/ccache
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        
       - name: Free Disk Space
         run: |
           sudo rm -rf /usr/share/dotnet
@@ -95,7 +98,7 @@ jobs:
           cd android
 
           mkdir -p .repo/local_manifests
-          cp ../manifests/roomservice.xml .repo/local_manifests/
+          cp $GITHUB_WORKSPACE/manifests/roomservice.xml .repo/local_manifests/
 
       - name: Repo Sync
         run: |
