@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+
+    <project
+        name="stanlysilas/OppoA31-OP4C7D-device-tree"
+        path="device/oppo/OP4C7D"
+        remote="github"
+        revision="lineage-16.0" />
+
+    <project
+        name="stanlysilas/OppoA31-OP4C7D-vendor-tree"
+        path="vendor/oppo/OP4C7D"
+        remote="github"
+        revision="lineage-16.0" />
+
+</manifest>

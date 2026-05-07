@@ -1,0 +1,73 @@
+name: Build boot.img
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Setup Repo Tool
+        run: |
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Initialize LineageOS Source
+        run: |
+          mkdir android
+          cd android
+
+          repo init \
+            -u https://github.com/LineageOS/android.git \
+            -b $ROM_BRANCH \
+            --depth=1
+
+      - name: Clone Local Manifests
+        run: |
+          cd android
+
+          mkdir -p .repo/local_manifests
+          cp ../manifests/roomservice.xml .repo/local_manifests/
+
+      - name: Repo Sync
+        run: |
+          cd android
+
+          repo sync \
+            --force-sync \
+            --no-clone-bundle \
+            --no-tags \
+            -j$(nproc --all)
+
+      - name: Setup CCache
+        run: |
+          export USE_CCACHE=1
+          export CCACHE_EXEC=$(which ccache)
+          ccache -M 10G
+          ccache -o compression=true
+
+      - name: Build boot.img
+        run: |
+          cd android
+
+          export USE_CCACHE=1
+          export CCACHE_EXEC=$(which ccache)
+
+          source build/envsetup.sh
+          lunch lineage_${DEVICE_CODENAME}-userdebug
+
+          mka bootimage -j$(nproc --all)
+
+      - name: Verify Output
+        run: |
+          cd android
+
+          ls -lh out/target/product/${DEVICE_CODENAME}/
+
+          test -f out/target/product/${DEVICE_CODENAME}/boot.img
+
+      - name: Upload boot.img
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootimage-${{ env.DEVICE_CODENAME }}
+          path: |
+            android/out/target/product/${{ env.DEVICE_CODENAME }}/boot.img
+            android/out/target/product/${{ env.DEVICE_CODENAME }}/obj/KERNEL_OBJ
+          if-no-files-found: error
