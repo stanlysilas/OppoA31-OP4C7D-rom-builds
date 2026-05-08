@@ -1,6 +1,9 @@
 name: Build boot.img
 
 on:
+  push:
+    paths:
+      - '.github/workflows/build-boot.yml'
   workflow_run:
     workflows:
       - "LOS16 Lunch Validation"
