@@ -4,8 +4,8 @@ on:
   push:
 
 jobs:
+  build-bootimage:
     runs-on: ubuntu-22.04
-    timeout-minutes: 360
 
     env:
       ROM_BRANCH: lineage-16.0
