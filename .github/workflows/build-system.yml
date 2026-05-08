@@ -63,12 +63,11 @@ jobs:
         run: |
           sudo ln -sf /usr/bin/python2 /usr/bin/python
 
-      - name: Fix libtinfo compatibility
+      - name: Install Legacy ncurses Compatibility
         run: |
-          sudo apt install -y libncurses5
-          
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 \
-            /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+          sudo apt install -y \
+            libtinfo5 \
+            libncurses5
 
       - name: Configure Git
         run: |
@@ -107,7 +106,7 @@ jobs:
             --force-sync \
             --no-clone-bundle \
             --no-tags \
-            -j$(nproc --all)
+            -j4
 
       - name: Setup CCache
         run: |
