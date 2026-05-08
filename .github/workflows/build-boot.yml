@@ -2,13 +2,6 @@ name: Build boot.img
 
 on:
   push:
-  workflow_run:
-    workflows:
-      - "LOS16 Lunch Validation"
-    types:
-      - completed
-
-  workflow_dispatch:
 
 jobs:
   build-bootimage:
