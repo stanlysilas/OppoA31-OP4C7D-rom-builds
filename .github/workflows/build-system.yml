@@ -5,7 +5,7 @@ on:
 
 jobs:
   build-systemimage:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
 
     env:
       ROM_BRANCH: lineage-16.0
@@ -29,8 +29,8 @@ jobs:
           sudo apt install -y \
             git \
             curl \
-            python3 \
-            python-is-python3 \
+            python2 \
+            python-is-python2 \
             bc \
             bison \
             build-essential \
