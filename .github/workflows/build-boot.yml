@@ -71,6 +71,13 @@ jobs:
             zlib1g-dev \
             openjdk-8-jdk
 
+      - name: Fix libtinfo compatibility
+        run: |
+          sudo apt install -y libncurses5
+          
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 \
+            /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+
       - name: Configure Git
         run: |
           git config --global user.name "GitHub Actions"
