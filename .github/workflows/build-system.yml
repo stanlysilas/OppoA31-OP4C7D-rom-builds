@@ -1,10 +1,10 @@
-name: Build boot.img
+name: Build system.img
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-bootimage:
+  build-systemimage:
     runs-on: ubuntu-22.04
 
     env:
@@ -113,7 +113,7 @@ jobs:
           ccache -M 10G
           ccache -o compression=true
 
-      - name: Build boot.img
+      - name: Build system.img
         run: |
           cd android
 
@@ -123,7 +123,7 @@ jobs:
           source build/envsetup.sh
           lunch lineage_${DEVICE_CODENAME}-userdebug
 
-          mka bootimage -j$(nproc --all)
+          mka systemimage -j4
 
       - name: Verify Output
         run: |
@@ -131,13 +131,12 @@ jobs:
 
           ls -lh out/target/product/${DEVICE_CODENAME}/
 
-          test -f out/target/product/${DEVICE_CODENAME}/boot.img
+          test -f out/target/product/${DEVICE_CODENAME}/system.img
 
-      - name: Upload boot.img
+      - name: Upload system.img
         uses: actions/upload-artifact@v4
         with:
-          name: bootimage-${{ env.DEVICE_CODENAME }}
+          name: systemimage-${{ env.DEVICE_CODENAME }}
           path: |
-            android/out/target/product/${{ env.DEVICE_CODENAME }}/boot.img
-            android/out/target/product/${{ env.DEVICE_CODENAME }}/obj/KERNEL_OBJ
+            android/out/target/product/${{ env.DEVICE_CODENAME }}/system.img
           if-no-files-found: error
