@@ -112,9 +112,9 @@ jobs:
         run: |
           cd android
 
-          rm -rf external/chromium-webview
+          rm -f external/chromium-webview/prebuilt/arm64/webview.apk
 
-          repo sync external/chromium-webview -j4
+          git -C external/chromium-webview checkout -- prebuilt/arm64/webview.apk
             
       - name: Disable ClearKey DRM
         run: |
