@@ -107,6 +107,12 @@ jobs:
             --no-clone-bundle \
             --no-tags \
             -j4
+            
+     - name: Disable ClearKey DRM
+       run: |
+         cd android
+         mv frameworks/av/drm/mediadrm/plugins/clearkey/hidl/Android.bp \
+            frameworks/av/drm/mediadrm/plugins/clearkey/hidl/Android.bp.disabled
 
       - name: Setup CCache
         run: |
