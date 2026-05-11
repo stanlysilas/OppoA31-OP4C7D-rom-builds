@@ -108,6 +108,14 @@ jobs:
             --no-tags \
             -j4
             
+      - name: Repair WebView prebuilts
+        run: |
+          cd android
+
+          rm -rf external/chromium-webview
+
+          repo sync external/chromium-webview -j4
+            
       - name: Disable ClearKey DRM
         run: |
           cd android
