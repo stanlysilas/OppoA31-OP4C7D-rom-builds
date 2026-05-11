@@ -108,13 +108,12 @@ jobs:
             --no-tags \
             -j4
             
-      - name: Repair WebView prebuilts
+      - name: Disable broken WebView package
         run: |
           cd android
 
-          rm -f external/chromium-webview/prebuilt/arm64/webview.apk
-
-          git -C external/chromium-webview checkout -- prebuilt/arm64/webview.apk
+          find external/chromium-webview -name "Android.mk" -exec mv {} {}.disabled \;
+          find external/chromium-webview -name "Android.bp" -exec mv {} {}.disabled \;
             
       - name: Disable ClearKey DRM
         run: |
