@@ -16,13 +16,15 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        
+
       - name: Aggressive Disk Cleanup
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
           sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /opt/google
           sudo docker system prune -af
           sudo apt clean
 
@@ -31,6 +33,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt update
+
           sudo apt install -y \
             git \
             curl \
@@ -62,17 +65,13 @@ jobs:
             xsltproc \
             zip \
             zlib1g-dev \
-            openjdk-8-jdk
-        
+            openjdk-8-jdk \
+            libtinfo5 \
+            libncurses5
+
       - name: Fix Python Compatibility
         run: |
           sudo ln -sf /usr/bin/python2 /usr/bin/python
-
-      - name: Install Legacy ncurses Compatibility
-        run: |
-          sudo apt install -y \
-            libtinfo5 \
-            libncurses5
 
       - name: Configure Git
         run: |
@@ -82,8 +81,11 @@ jobs:
       - name: Setup Repo Tool
         run: |
           mkdir -p ~/bin
+
           curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+
           chmod a+x ~/bin/repo
+
           echo "$HOME/bin" >> $GITHUB_PATH
 
       - name: Initialize LineageOS Source
@@ -101,7 +103,9 @@ jobs:
           cd android
 
           mkdir -p .repo/local_manifests
-          cp $GITHUB_WORKSPACE/manifests/roomservice.xml .repo/local_manifests/
+
+          cp $GITHUB_WORKSPACE/manifests/roomservice.xml \
+             .repo/local_manifests/
 
       - name: Repo Sync
         run: |
@@ -112,36 +116,49 @@ jobs:
             --no-clone-bundle \
             --no-tags \
             -j4
-            
-      - name: Disable broken WebView package
+
+      - name: Disable Broken WebView Package
         run: |
           cd android
 
-          find external/chromium-webview -name "Android.mk" -exec mv {} {}.disabled \; || true
-          find external/chromium-webview -name "Android.bp" -exec mv {} {}.disabled \; || true
-            
+          find external/chromium-webview \
+            -name "Android.mk" \
+            -exec mv {} {}.disabled \; || true
+
+          find external/chromium-webview \
+            -name "Android.bp" \
+            -exec mv {} {}.disabled \; || true
+
       - name: Disable ClearKey DRM
         run: |
           cd android
+
           mv frameworks/av/drm/mediadrm/plugins/clearkey/hidl/Android.bp \
              frameworks/av/drm/mediadrm/plugins/clearkey/hidl/Android.bp.disabled || true
-             
+
       - name: Apply Build Optimizations
         run: |
           cd android
 
           echo "WITH_DEXPREOPT := false" >> device/oppo/OP4C7D/BoardConfig.mk
 
+          echo "WITH_DEXPREOPT_DEBUG_INFO := false" >> device/oppo/OP4C7D/BoardConfig.mk
+
           echo "TARGET_MINIMIZE_JAVA_DEBUG_INFO := true" >> device/oppo/OP4C7D/BoardConfig.mk
 
-          echo "WITH_DEXPREOPT_DEBUG_INFO := false" >> device/oppo/OP4C7D/BoardConfig.mk
+          echo "TARGET_DISABLE_DEBUG_SYMBOLS := true" >> device/oppo/OP4C7D/BoardConfig.mk
+
+          echo "BOARD_DO_NOT_STRIP_VENDOR_MODULES := true" >> device/oppo/OP4C7D/BoardConfig.mk
 
       - name: Setup CCache
         run: |
           export USE_CCACHE=1
           export CCACHE_EXEC=$(which ccache)
+
           ccache -M 20G
           ccache -o compression=true
+
+          ccache -s
 
       - name: Build system.img
         run: |
@@ -150,10 +167,27 @@ jobs:
           export USE_CCACHE=1
           export CCACHE_EXEC=$(which ccache)
 
+          export DISABLE_DEXPREOPT=true
+          export WITH_DEXPREOPT=false
+          export SOONG_ALLOW_MISSING_DEPENDENCIES=true
+
           source build/envsetup.sh
+
           lunch lineage_${DEVICE_CODENAME}-userdebug
 
-          mka systemimage -j3
+          rm -rf out/soong/.temp || true
+          rm -rf out/host/linux-x86/tests || true
+
+          df -h
+
+          mka systemimage -j2 > build.log 2>&1
+      
+      - name: Upload Build Log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: android/build.log
 
       - name: Verify Output
         run: |
