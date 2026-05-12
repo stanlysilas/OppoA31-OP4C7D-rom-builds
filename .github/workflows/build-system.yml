@@ -75,6 +75,10 @@ jobs:
             
           sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
           sudo update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
+          
+          echo "========== DISK USAGE =========="
+          df -h
+          echo "================================"
 
       - name: Fix Python Compatibility
         run: |
@@ -94,6 +98,10 @@ jobs:
           chmod a+x ~/bin/repo
 
           echo "$HOME/bin" >> $GITHUB_PATH
+          
+          echo "========== DISK USAGE =========="
+          df -h
+          echo "================================"
 
       - name: Initialize LineageOS Source
         run: |
@@ -104,6 +112,10 @@ jobs:
             -u https://github.com/LineageOS/android.git \
             -b $ROM_BRANCH \
             --depth=1
+            
+          echo "========== DISK USAGE =========="
+          df -h
+          echo "================================"
 
       - name: Clone Local Manifests
         run: |
@@ -113,6 +125,10 @@ jobs:
 
           cp $GITHUB_WORKSPACE/manifests/roomservice.xml \
              .repo/local_manifests/
+             
+          echo "========== DISK USAGE =========="
+          df -h
+          echo "================================"
 
       - name: Repo Sync
         run: |
@@ -124,16 +140,23 @@ jobs:
             --no-tags \
             -j4
             
-      - name: Remove Unused Projects
+          echo "========== DISK USAGE =========="
+          df -h
+          echo "================================"
+          
+      - name: Disable Broken WebView Package
         run: |
           cd android
-
-          rm -rf packages/apps/Email || true
-          rm -rf external/chromium-webview || true
-          rm -rf prebuilts/clang/host/darwin-x86 || true
-          rm -rf prebuilts/gcc/darwin-x86 || true
-          rm -rf device/generic/car || true
-          rm -rf packages/apps/Browser2 || true
+          find external/chromium-webview \
+            -name "Android.mk" \
+            -exec mv {} {}.disabled \; || true
+          find external/chromium-webview \
+            -name "Android.bp" \
+            -exec mv {} {}.disabled \; || true
+            
+          echo "========== DISK USAGE =========="
+          df -h
+          echo "================================"
 
       - name: Disable ClearKey DRM
         run: |
@@ -156,21 +179,27 @@ jobs:
 
           echo "BOARD_DO_NOT_STRIP_VENDOR_MODULES := true" >> device/oppo/OP4C7D/BoardConfig.mk
           
-          echo "TARGET_BUILD_APPS := " >> device/oppo/OP4C7D/BoardConfig.mk
-          
           echo "ENABLE_INCREMENTAL_DATABIN := false" >> device/oppo/OP4C7D/BoardConfig.mk
           
           echo "TARGET_NO_KERNEL_OVERRIDE := true" >> device/oppo/OP4C7D/BoardConfig.mk
+          
+          echo "========== DISK USAGE =========="
+          df -h
+          echo "================================"
 
       - name: Setup CCache
         run: |
           export USE_CCACHE=1
           export CCACHE_EXEC=$(which ccache)
 
-          ccache -M 20G
+          ccache -M 8G
           ccache -o compression=true
 
           ccache -s
+          
+          echo "========== DISK USAGE =========="
+          df -h
+          echo "================================"
 
       - name: Build system.img
         run: |
@@ -193,6 +222,8 @@ jobs:
           df -h
 
           set -o pipefail
+          
+          ulimit -n 4096
           
           mka systemimage -j3 2>&1 | \
           grep -i --line-buffered -E "error:|failed:|fatal:|ninja:|No space left|FAILED"
