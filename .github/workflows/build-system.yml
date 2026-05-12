@@ -25,6 +25,10 @@ jobs:
           sudo rm -rf /opt/hostedtoolcache
           sudo rm -rf /usr/local/share/boost
           sudo rm -rf /opt/google
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /opt/az
+          sudo rm -rf /usr/lib/jvm
           sudo docker system prune -af
           sudo apt clean
 
@@ -68,6 +72,9 @@ jobs:
             openjdk-8-jdk \
             libtinfo5 \
             libncurses5
+            
+          sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+          sudo update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
 
       - name: Fix Python Compatibility
         run: |
@@ -116,18 +123,17 @@ jobs:
             --no-clone-bundle \
             --no-tags \
             -j4
-
-      - name: Disable Broken WebView Package
+            
+      - name: Remove Unused Projects
         run: |
           cd android
 
-          find external/chromium-webview \
-            -name "Android.mk" \
-            -exec mv {} {}.disabled \; || true
-
-          find external/chromium-webview \
-            -name "Android.bp" \
-            -exec mv {} {}.disabled \; || true
+          rm -rf packages/apps/Email || true
+          rm -rf external/chromium-webview || true
+          rm -rf prebuilts/clang/host/darwin-x86 || true
+          rm -rf prebuilts/gcc/darwin-x86 || true
+          rm -rf device/generic/car || true
+          rm -rf packages/apps/Browser2 || true
 
       - name: Disable ClearKey DRM
         run: |
@@ -149,6 +155,12 @@ jobs:
           echo "TARGET_DISABLE_DEBUG_SYMBOLS := true" >> device/oppo/OP4C7D/BoardConfig.mk
 
           echo "BOARD_DO_NOT_STRIP_VENDOR_MODULES := true" >> device/oppo/OP4C7D/BoardConfig.mk
+          
+          echo "TARGET_BUILD_APPS := " >> device/oppo/OP4C7D/BoardConfig.mk
+          
+          echo "ENABLE_INCREMENTAL_DATABIN := false" >> device/oppo/OP4C7D/BoardConfig.mk
+          
+          echo "TARGET_NO_KERNEL_OVERRIDE := true" >> device/oppo/OP4C7D/BoardConfig.mk
 
       - name: Setup CCache
         run: |
@@ -180,14 +192,10 @@ jobs:
 
           df -h
 
-          mka systemimage -j2 > build.log 2>&1
-      
-      - name: Upload Build Log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: android/build.log
+          set -o pipefail
+          
+          mka systemimage -j3 2>&1 | \
+          grep -i --line-buffered -E "error:|failed:|fatal:|ninja:|No space left|FAILED"
 
       - name: Verify Output
         run: |
