@@ -17,11 +17,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
         
-      - name: Free Disk Space
+      - name: Aggressive Disk Cleanup
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
-          sudo docker image prune -af
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
+          sudo docker system prune -af
+          sudo apt clean
+
+          df -h
 
       - name: Install Dependencies
         run: |
@@ -112,20 +117,30 @@ jobs:
         run: |
           cd android
 
-          find external/chromium-webview -name "Android.mk" -exec mv {} {}.disabled \;
-          find external/chromium-webview -name "Android.bp" -exec mv {} {}.disabled \;
+          find external/chromium-webview -name "Android.mk" -exec mv {} {}.disabled \; || true
+          find external/chromium-webview -name "Android.bp" -exec mv {} {}.disabled \; || true
             
       - name: Disable ClearKey DRM
         run: |
           cd android
           mv frameworks/av/drm/mediadrm/plugins/clearkey/hidl/Android.bp \
-             frameworks/av/drm/mediadrm/plugins/clearkey/hidl/Android.bp.disabled
+             frameworks/av/drm/mediadrm/plugins/clearkey/hidl/Android.bp.disabled || true
+             
+      - name: Apply Build Optimizations
+        run: |
+          cd android
+
+          echo "WITH_DEXPREOPT := false" >> device/oppo/OP4C7D/BoardConfig.mk
+
+          echo "TARGET_MINIMIZE_JAVA_DEBUG_INFO := true" >> device/oppo/OP4C7D/BoardConfig.mk
+
+          echo "WITH_DEXPREOPT_DEBUG_INFO := false" >> device/oppo/OP4C7D/BoardConfig.mk
 
       - name: Setup CCache
         run: |
           export USE_CCACHE=1
           export CCACHE_EXEC=$(which ccache)
-          ccache -M 10G
+          ccache -M 20G
           ccache -o compression=true
 
       - name: Build system.img
@@ -138,7 +153,7 @@ jobs:
           source build/envsetup.sh
           lunch lineage_${DEVICE_CODENAME}-userdebug
 
-          mka systemimage -j4
+          mka systemimage -j3
 
       - name: Verify Output
         run: |
