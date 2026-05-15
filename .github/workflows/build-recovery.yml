@@ -60,8 +60,7 @@ jobs:
             zip \
             zlib1g-dev \
             openjdk-8-jdk \
-            libtinfo5 \
-            libncurses5
+            libtinfo5
 
           sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
           sudo update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
@@ -72,11 +71,11 @@ jobs:
 
       - name: Fix libtinfo compatibility
         run: |
-          sudo apt install -y libncurses5
+          sudo apt remove -y libtinfo5 || true
 
-          sudo ln -sf \
-            /usr/lib/x86_64-linux-gnu/libtinfo.so.6 \
-            /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+          wget http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
+
+          sudo dpkg -i libtinfo5_6.3-2ubuntu0.1_amd64.deb
 
       - name: Configure Git
         run: |
