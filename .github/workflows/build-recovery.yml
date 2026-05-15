@@ -59,8 +59,7 @@ jobs:
             xsltproc \
             zip \
             zlib1g-dev \
-            openjdk-8-jdk \
-            libtinfo5
+            openjdk-8-jdk
 
           sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
           sudo update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
@@ -69,13 +68,13 @@ jobs:
         run: |
           sudo ln -sf /usr/bin/python2 /usr/bin/python
 
-      - name: Fix libtinfo compatibility
+      - name: Install ncurses5 compatibility libraries
         run: |
-          sudo apt remove -y libtinfo5 || true
-
+          wget http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libncurses5_6.3-2ubuntu0.1_amd64.deb
           wget http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
 
           sudo dpkg -i libtinfo5_6.3-2ubuntu0.1_amd64.deb
+          sudo dpkg -i libncurses5_6.3-2ubuntu0.1_amd64.deb
 
       - name: Configure Git
         run: |
@@ -143,7 +142,7 @@ jobs:
 
           lunch lineage_${DEVICE_CODENAME}-userdebug
 
-          mka recoveryimage -j$(nproc --all)
+          mka recoveryimage -j4
 
       - name: Verify Output
         run: |
