@@ -18,11 +18,22 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Free Disk Space
+      - name: Aggressive Disk Cleanup
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
-          sudo docker image prune -af
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /opt/google
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /opt/az
+          sudo rm -rf /usr/lib/jvm
+          sudo docker system prune -af
+          sudo apt clean
+
+          df -hf
 
       - name: Install Dependencies
         run: |
@@ -63,6 +74,8 @@ jobs:
 
           sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
           sudo update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
+
+          df -hf
 
       - name: Fix Python Compatibility
         run: |
