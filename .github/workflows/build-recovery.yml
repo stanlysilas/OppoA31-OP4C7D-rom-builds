@@ -33,7 +33,7 @@ jobs:
           sudo docker system prune -af
           sudo apt clean
 
-          df -hf
+          df -h
 
       - name: Install Dependencies
         run: |
