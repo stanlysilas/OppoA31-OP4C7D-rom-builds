@@ -139,8 +139,7 @@ jobs:
             --no-clone-bundle \
             --no-tags \
             --current-branch \
-            --depth=1 \
-            -j1
+            -j4
 
       - name: Setup CCache
         run: |
