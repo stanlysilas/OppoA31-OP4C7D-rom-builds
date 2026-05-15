@@ -1,0 +1,159 @@
+name: Build recovery.img
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-recoveryimage:
+    runs-on: ubuntu-22.04
+
+    env:
+      ROM_BRANCH: lineage-16.0
+      DEVICE_CODENAME: OP4C7D
+      DEVICE_PATH: device/oppo/OP4C7D
+      CCACHE_DIR: /tmp/ccache
+      OUT_DIR: out/lineage
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo docker image prune -af
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+
+          sudo apt install -y \
+            git \
+            curl \
+            python3 \
+            python-is-python3 \
+            bc \
+            bison \
+            build-essential \
+            ccache \
+            flex \
+            g++-multilib \
+            gcc-multilib \
+            gnupg \
+            gperf \
+            imagemagick \
+            lib32ncurses5-dev \
+            lib32readline-dev \
+            lib32z1-dev \
+            liblz4-tool \
+            libncurses5-dev \
+            libsdl1.2-dev \
+            libssl-dev \
+            libxml2 \
+            libxml2-utils \
+            lzop \
+            pngcrush \
+            rsync \
+            schedtool \
+            squashfs-tools \
+            xsltproc \
+            zip \
+            zlib1g-dev \
+            openjdk-8-jdk
+
+      - name: Fix libtinfo compatibility
+        run: |
+          sudo apt install -y libncurses5
+
+          sudo ln -sf \
+            /usr/lib/x86_64-linux-gnu/libtinfo.so.6 \
+            /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Setup Repo Tool
+        run: |
+          mkdir -p ~/bin
+
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+
+          chmod a+x ~/bin/repo
+
+          echo "$HOME/bin" >> $GITHUB_PATH
+
+      - name: Initialize LineageOS Source
+        run: |
+          mkdir android
+          cd android
+
+          repo init \
+            -u https://github.com/LineageOS/android.git \
+            -b $ROM_BRANCH \
+            --depth=1
+
+      - name: Clone Local Manifests
+        run: |
+          cd android
+
+          mkdir -p .repo/local_manifests
+
+          cp \
+            $GITHUB_WORKSPACE/manifests/roomservice.xml \
+            .repo/local_manifests/
+
+      - name: Repo Sync
+        run: |
+          cd android
+
+          repo sync \
+            --force-sync \
+            --no-clone-bundle \
+            --no-tags \
+            -j$(nproc --all)
+
+      - name: Setup CCache
+        run: |
+          export USE_CCACHE=1
+          export CCACHE_EXEC=$(which ccache)
+
+          ccache -M 10G
+          ccache -o compression=true
+
+      - name: Build recovery.img
+        run: |
+          cd android
+
+          export OUT_DIR=out/lineage
+
+          export USE_CCACHE=1
+          export CCACHE_EXEC=$(which ccache)
+
+          source build/envsetup.sh
+
+          lunch lineage_${DEVICE_CODENAME}-userdebug
+
+          mka recoveryimage -j$(nproc --all)
+
+      - name: Verify Output
+        run: |
+          cd android
+
+          ls -lh \
+            out/lineage/target/product/${DEVICE_CODENAME}/
+
+          test -f \
+            out/lineage/target/product/${DEVICE_CODENAME}/recovery.img
+
+      - name: Upload recovery.img
+        uses: actions/upload-artifact@v4
+        with:
+          name: recoveryimage-${{ env.DEVICE_CODENAME }}
+          path: |
+            android/out/lineage/target/product/${{ env.DEVICE_CODENAME }}/recovery.img
+            android/out/lineage/target/product/${{ env.DEVICE_CODENAME }}/recovery.id
+            android/out/lineage/target/product/${{ env.DEVICE_CODENAME }}/ramdisk-recovery.img
+          if-no-files-found: error
