@@ -31,8 +31,7 @@ jobs:
           sudo apt install -y \
             git \
             curl \
-            python3 \
-            python-is-python3 \
+            python2-minimal \
             bc \
             bison \
             build-essential \
@@ -60,7 +59,16 @@ jobs:
             xsltproc \
             zip \
             zlib1g-dev \
-            openjdk-8-jdk
+            openjdk-8-jdk \
+            libtinfo5 \
+            libncurses5
+
+          sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+          sudo update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
+
+      - name: Fix Python Compatibility
+        run: |
+          sudo ln -sf /usr/bin/python2 /usr/bin/python
 
       - name: Fix libtinfo compatibility
         run: |
