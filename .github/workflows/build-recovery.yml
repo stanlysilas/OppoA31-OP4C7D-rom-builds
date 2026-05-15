@@ -10,7 +10,6 @@ jobs:
     env:
       ROM_BRANCH: lineage-16.0
       DEVICE_CODENAME: OP4C7D
-      DEVICE_PATH: device/oppo/OP4C7D
       CCACHE_DIR: /tmp/ccache
       OUT_DIR: out/lineage
 
@@ -30,9 +29,11 @@ jobs:
           sudo rm -rf /usr/local/.ghcup
           sudo rm -rf /opt/az
           sudo rm -rf /usr/lib/jvm
-          sudo docker system prune -af
-          sudo apt clean
 
+          sudo docker system prune -af || true
+          sudo apt clean || true
+
+          echo "=== Disk Space After Cleanup ==="
           df -h
 
       - name: Install Dependencies
@@ -70,11 +71,13 @@ jobs:
             xsltproc \
             zip \
             zlib1g-dev \
-            openjdk-8-jdk
+            openjdk-8-jdk \
+            wget
 
           sudo update-alternatives --set java /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
           sudo update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
 
+          echo "=== Disk Space After Dependencies ==="
           df -h
 
       - name: Fix Python Compatibility
@@ -83,8 +86,8 @@ jobs:
 
       - name: Install ncurses5 compatibility libraries
         run: |
-          wget http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libncurses5_6.3-2ubuntu0.1_amd64.deb
           wget http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb
+          wget http://archive.ubuntu.com/ubuntu/pool/universe/n/ncurses/libncurses5_6.3-2ubuntu0.1_amd64.deb
 
           sudo dpkg -i libtinfo5_6.3-2ubuntu0.1_amd64.deb
           sudo dpkg -i libncurses5_6.3-2ubuntu0.1_amd64.deb
@@ -93,6 +96,7 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
+          git config --global gc.auto 0
 
       - name: Setup Repo Tool
         run: |
@@ -112,7 +116,9 @@ jobs:
           repo init \
             -u https://github.com/LineageOS/android.git \
             -b $ROM_BRANCH \
-            --depth=1
+            --depth=1 \
+            --partial-clone \
+            --clone-filter=blob:limit=10M
 
       - name: Clone Local Manifests
         run: |
@@ -132,14 +138,16 @@ jobs:
             --force-sync \
             --no-clone-bundle \
             --no-tags \
-            -j$(nproc --all)
+            --current-branch \
+            --depth=1 \
+            -j1
 
       - name: Setup CCache
         run: |
           export USE_CCACHE=1
           export CCACHE_EXEC=$(which ccache)
 
-          ccache -M 10G
+          ccache -M 5G
           ccache -o compression=true
 
       - name: Build recovery.img
@@ -147,7 +155,6 @@ jobs:
           cd android
 
           export OUT_DIR=out/lineage
-
           export USE_CCACHE=1
           export CCACHE_EXEC=$(which ccache)
 
@@ -155,7 +162,7 @@ jobs:
 
           lunch lineage_${DEVICE_CODENAME}-userdebug
 
-          mka recoveryimage -j4
+          mka recoveryimage -j2
 
       - name: Verify Output
         run: |
